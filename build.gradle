@@ -1,0 +1,95 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        google()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.0.3'
+    }
+}
+
+allprojects {
+    repositories {
+        maven {url "https://jitpack.io"}
+        google()
+    }
+}
+
+def props = new Properties()
+props.load(new FileReader(file('app.properties')))
+def APPID = props.getProperty("package")
+def VERSION_CODE = (props.getProperty("build") as Integer) + 1
+def VERSION = "1.1.${VERSION_CODE}"
+props.setProperty("build",VERSION_CODE as String)
+props.setProperty("version",VERSION)
+if (project.gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }) {
+    def writer = new FileWriter(file("app.properties"))
+    props.store(writer, "")
+    writer.flush()
+}
+
+// Keystore
+def path = rootProject.file(System.properties['user.home'] + "/.gradle/path.properties")
+def pathProperties = new Properties()
+pathProperties.load(new FileInputStream(path))
+def keystorePropertiesFile = rootProject.file(pathProperties["path"] + "/sample.properties")
+def keystoreProperties = new Properties()
+keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+
+apply plugin: 'com.android.library'
+
+android {
+    signingConfigs {
+        key {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile file(pathProperties["path"] + "/sample.jks")
+            storePassword keystoreProperties['storePassword']
+        }
+    }
+    compileSdkVersion 31
+    buildToolsVersion "31.0.0"
+    defaultConfig {
+        minSdkVersion 14
+        targetSdkVersion 31
+        versionCode VERSION_CODE
+        versionName VERSION
+        setProperty("archivesBaseName", "${APPID}-${VERSION}")
+        buildConfigField "String","APPID", "\"" + APPID + "\""
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.key
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        release {
+            signingConfig signingConfigs.key
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    flavorDimensions "version"
+    productFlavors {
+    }
+    compileOptions {
+        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_1_8
+    }
+}
+dependencies {
+
+    implementation 'androidx.appcompat:appcompat:1.3.1'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+    implementation 'com.google.android.material:material:1.4.0'
+    implementation 'androidx.cardview:cardview:1.0.0'
+    implementation 'androidx.recyclerview:recyclerview:1.2.1'
+    implementation 'androidx.preference:preference:1.1.1'
+    implementation ("com.journeyapps:zxing-android-embedded:3.6.0")
+}
+
+repositories {
+    mavenCentral()
+}
+
